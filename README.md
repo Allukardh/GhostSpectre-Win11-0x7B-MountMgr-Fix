@@ -1,0 +1,2 @@
+# GhostSpectre-Win11-0x7B-MountMgr-Fix
+INACCESSIBLE_BOOT_DEVICE (0x7B)
