@@ -1,0 +1,61 @@
+name: Publish v1.0.0
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-v1.0.0.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create checksum
+        shell: bash
+        run: |
+          sha256sum fix/FIX-0x7B-MOUNTMGR.cmd > FIX-0x7B-MOUNTMGR.cmd.sha256
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v1.0.0
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; nothing to do."
+            exit 0
+          fi
+
+          cat > release-notes.md <<'EOF'
+          ## Ghost Spectre Windows 11 25H2 — 0x7B MountMgr Recovery
+
+          First public release of the guarded recovery script for the specific
+          INACCESSIBLE_BOOT_DEVICE (0x0000007B) case where:
+
+          - `mountmgr.sys` is present;
+          - the offline `Services\mountmgr` registry key is missing;
+          - Windows cannot complete early boot.
+
+          Verified recovery environment:
+
+          - Ghost Spectre Windows 11 25H2
+          - OS build 26200.9168
+          - UEFI/GPT
+          - NVMe system disk
+
+          The script verifies the exact condition before writing, backs up the
+          offline SYSTEM hive, restores the missing MountMgr service definition,
+          verifies it, and unloads the hive.
+
+          **This is not a universal 0x7B fix.** If `mountmgr` already exists,
+          the script exits without overwriting it.
+          EOF
+
+          gh release create "$TAG"             "fix/FIX-0x7B-MOUNTMGR.cmd#FIX-0x7B-MOUNTMGR.cmd"             "FIX-0x7B-MOUNTMGR.cmd.sha256#FIX-0x7B-MOUNTMGR.cmd.sha256"             --target "${GITHUB_SHA}"             --title "v1.0.0 — MountMgr 0x7B Recovery"             --notes-file release-notes.md
